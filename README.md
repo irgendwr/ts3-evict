@@ -15,7 +15,7 @@ Download the latest release into `/opt/ts3-evict/` (or any other folder):
 ```bash
 mkdir -p /opt/ts3-evict/
 cd /opt/ts3-evict/
-curl -O -L https://github.com/irgendwr/sinusbot-spotify/releases/latest/download/ts3-evict_Linux_x86_64.tar.gz
+curl -O -L https://github.com/irgendwr/ts3-evict/releases/latest/download/ts3-evict_Linux_x86_64.tar.gz
 tar -xvzf ts3-evict_Linux_x86_64.tar.gz
 ```
 
