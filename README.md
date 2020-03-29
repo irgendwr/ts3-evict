@@ -19,24 +19,54 @@ curl -O -L https://github.com/irgendwr/sinusbot-spotify/releases/latest/download
 tar -xvzf ts3-evict_Linux_x86_64.tar.gz
 ```
 
-Create a file called `.ts3-evict.yaml` inside this folder (e.g. using `nano .ts3-evict.yaml`) and edit it with your spotify credentials:
+Create a file called `.ts3-evict.yaml` inside this folder (e.g. using `nano .ts3-evict.yaml`) and edit it to fit your needs.
+See [config](#config) section for examples.
+
+### Config
+
+Example with all options:
 
 ```yaml
 defaultusername: serveradmin
 defaultpassword: your-password-here
 defaultqueryport: 10011
-defaultport: 9987
-# timelimit in minutes
+defaultports: [9987, 9988]
+# timelimit before evicting (in minutes)
 timelimit: 5
 action: kick
 message: Timelimit exceeded.
-# delay in seconds
+# delay before doing action (in seconds)
 delay: 15
 ignoreGroupNames:
   - Server Admin
   - musicbot
 servers:
-  - IP: boegle.me
+  - IP: ts3.example.com
+  - IP: another.ts3.example.com
+    ports: [9987]
+  - IP: 127.0.0.1
+    queryport: 10011
+    ports: [9987, 9988, 9989]
+    username: serveradmin
+    password: your-secret-password
+```
+
+Example for a single TS3 server:
+
+```yaml
+timelimit: 5 # timelimit before evicting (in minutes)
+action: kick
+message: Timelimit exceeded.
+delay: 15 # delay before doing action (in seconds)
+ignoreGroupNames:
+  - Server Admin
+  - musicbot
+servers:
+  - IP: 127.0.0.1
+    queryport: 10011
+    ports: [9987]
+    username: serveradmin
+    password: your-secret-password
 ```
 
 ## Usage
