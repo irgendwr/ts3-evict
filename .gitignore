@@ -4,6 +4,11 @@
 *.dll
 *.so
 *.dylib
+ts3-evict
+
+
+# go releaser
+dist/
 
 # Test binary, built with `go test -c`
 *.test
@@ -13,3 +18,10 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# config
+.ts3-evict.yaml
+config.yaml
+
+# vscode settings
+.vscode/
