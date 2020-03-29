@@ -12,16 +12,18 @@ import (
 )
 
 type onlineClient struct {
-	ID            int    `ms:"cid"`
-	CLID          int    `ms:"clid"`
-	DatabaseID    int    `ms:"client_database_id"`
-	Nickname      string `ms:"client_nickname"`
-	Type          int    `ms:"client_type"`
-	Away          bool   `ms:"client_away"`
-	AwayMessage   string `ms:"client_away_message"`
-	LastConnected int64  `ms:"client_lastconnected"`
-	IdleTime      int64  `ms:"client_idle_time"`
-	Servergroups  string `ms:"client_servergroups"`
+	ID                 int    `ms:"cid"`
+	CLID               int    `ms:"clid"`
+	UniqueIdentifier   string `ms:"client_unique_identifier"`
+	ConnectionClientIP string `ms:"connection_client_ip"`
+	DatabaseID         int    `ms:"client_database_id"`
+	Nickname           string `ms:"client_nickname"`
+	Type               int    `ms:"client_type"`
+	Away               bool   `ms:"client_away"`
+	AwayMessage        string `ms:"client_away_message"`
+	LastConnected      int64  `ms:"client_lastconnected"`
+	IdleTime           int64  `ms:"client_idle_time"`
+	Servergroups       string `ms:"client_servergroups"`
 }
 
 func evict(cfg config) error {
@@ -37,7 +39,9 @@ func evict(cfg config) error {
 func (s server) evict(cfg config) error {
 	s.fillDefaults(cfg)
 
-	c, err := ts3.NewClient(fmt.Sprintf("%s:%d", s.IP, s.QueryPort))
+	addr := fmt.Sprintf("%s:%d", s.IP, s.QueryPort)
+	log.Printf("Checking %s...\n", addr)
+	c, err := ts3.NewClient(addr)
 	if err != nil {
 		return err
 	}
@@ -52,7 +56,7 @@ func (s server) evict(cfg config) error {
 		var mutex sync.Mutex
 
 		if err := c.UsePort(port); err != nil {
-			log.Printf("Invalid port '%d' on host '%s'\n", port, s.IP)
+			log.Printf("Error: Invalid port '%d' on host '%s'\n", port, s.IP)
 			continue
 		}
 
@@ -70,7 +74,7 @@ func (s server) evict(cfg config) error {
 		}
 
 		var clients []*onlineClient
-		if _, err := c.ExecCmd(ts3.NewCmd("clientlist").WithOptions("-times", "-groups").WithResponse(&clients)); err != nil {
+		if _, err := c.ExecCmd(ts3.NewCmd("clientlist").WithOptions("-uid", "-times", "-groups", "-info").WithResponse(&clients)); err != nil {
 			return err
 		}
 
@@ -88,10 +92,10 @@ func (s server) evict(cfg config) error {
 					continue
 				}
 
-				log.Printf("messaging client %s...\n", client.Nickname)
+				log.Printf("Messaging %s...\n", client.Nickname)
 				mutex.Lock()
 				if _, err := c.ExecCmd(ts3.NewCmd("sendtextmessage").WithArgs(ts3.NewArg("targetmode", 1), ts3.NewArg("target", client.CLID), ts3.NewArg("msg", cfg.Message))); err != nil {
-					log.Printf("Unable to send text message: %s\n", err)
+					log.Printf("Error: Unable to send message: %s\n", err)
 				}
 				mutex.Unlock()
 
@@ -101,7 +105,7 @@ func (s server) evict(cfg config) error {
 
 					time.Sleep(time.Duration(cfg.Delay) * time.Second)
 
-					log.Printf("evicting client %s...\n", client.Nickname)
+					log.Printf("Evicting %s | %s | %s ...\n", client.Nickname, client.UniqueIdentifier, client.ConnectionClientIP)
 
 					switch cfg.Action {
 					case "none":
@@ -109,14 +113,14 @@ func (s server) evict(cfg config) error {
 					case "ban":
 						mutex.Lock()
 						if _, err := c.ExecCmd(ts3.NewCmd("banclient").WithArgs(ts3.NewArg("clid", client.CLID))); err != nil {
-							log.Printf("Unable to ban %s: %s\n", client.Nickname, err)
+							log.Printf("Error: Unable to ban %s: %s\n", client.Nickname, err)
 						}
 						mutex.Unlock()
 					default:
 					case "kick":
 						mutex.Lock()
 						if _, err := c.ExecCmd(ts3.NewCmd("clientkick").WithArgs(ts3.NewArg("clid", client.CLID), ts3.NewArg("reasonid", 5 /* server kick*/))); err != nil {
-							log.Printf("Unable to kick %s: %s\n", client.Nickname, err)
+							log.Printf("Error: Unable to kick %s: %s\n", client.Nickname, err)
 						}
 						mutex.Unlock()
 					}

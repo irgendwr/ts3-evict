@@ -61,7 +61,7 @@ var rootCmd = &cobra.Command{
 		var cfg config
 		err := viper.Unmarshal(&cfg)
 		if err != nil {
-			log.Fatalf("Unable to read config: %s\n", err)
+			log.Fatalf("Error: Unable to read config: %s\n", err)
 		}
 
 		// if cfg.DefaultUsername == "" || cfg.DefaultPassword == "" {
@@ -69,11 +69,11 @@ var rootCmd = &cobra.Command{
 		// }
 
 		if !(cfg.Action == "kick" || cfg.Action == "ban" || cfg.Action == "none") {
-			log.Fatalln("Please set a valid action: either kick, ban or none.")
+			log.Fatalln("Error: Please set a valid action: either kick, ban or none.")
 		}
 
 		if err := evict(cfg); err != nil {
-			log.Fatalln(err)
+			log.Fatalf("Error: %s\n", err)
 		}
 	},
 }

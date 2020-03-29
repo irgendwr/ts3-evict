@@ -5,7 +5,7 @@
 *.so
 *.dylib
 ts3-evict
-
+*.tar.gz
 
 # go releaser
 dist/
