@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +21,7 @@ type onlineClient struct {
 	AwayMessage   string `ms:"client_away_message"`
 	LastConnected int64  `ms:"client_lastconnected"`
 	IdleTime      int64  `ms:"client_idle_time"`
-	Servergroups  []int  `ms:"client_servergroups"`
+	Servergroups  string `ms:"client_servergroups"`
 }
 
 func evict(cfg config) error {
@@ -129,9 +130,9 @@ func (s server) evict(cfg config) error {
 }
 
 func hasGroup(c *onlineClient, groups []*ts3.Group) bool {
-	for _, id := range c.Servergroups {
+	for _, id := range strings.Split(c.Servergroups, ",") {
 		for _, group := range groups {
-			if id == group.ID {
+			if id == strconv.Itoa(group.ID) {
 				return true
 			}
 		}
