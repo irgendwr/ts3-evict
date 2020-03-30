@@ -29,7 +29,7 @@ type onlineClient struct {
 func evict(cfg config) error {
 	for _, s := range cfg.Servers {
 		if err := s.evict(cfg); err != nil {
-			return err
+			log.Fatalf("Error: %s\n", err)
 		}
 	}
 
