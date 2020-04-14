@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -30,8 +31,8 @@ type onlineClient struct {
 }
 
 type violationEntry struct {
-	count int
-	violator
+	Count    int
+	Violator violator
 }
 
 type violator struct {
@@ -40,51 +41,106 @@ type violator struct {
 }
 
 func evict(cfg config) error {
-	// TODO: read violators
+	var violationsFile *os.File
+	violators := []violationEntry{}
 
-	violations := []violationEntry{}
-	violators := []violator{}
+	if cfg.Violators != "" {
+		f, err := os.OpenFile(cfg.Violators, os.O_RDWR|os.O_CREATE, 0755)
+		if err != nil {
+			return errors.Wrapf(err, "unable to open file %q", cfg.Violators)
+		}
+		violationsFile = f
+
+		r := csv.NewReader(violationsFile)
+		for {
+			record, err := r.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return err
+			}
+			count, err := strconv.Atoi(record[0])
+			if err != nil {
+				return err
+			}
+			if len(record) < 2 {
+				return errors.New("invalid record length (at least two fields required)")
+			}
+			nick := ""
+			if len(record) >= 3 {
+				nick = record[2]
+			}
+
+			violators = append(violators, violationEntry{
+				Count: count,
+				Violator: violator{
+					UID:  record[1],
+					Nick: nick,
+				},
+			})
+		}
+	}
+
 	for _, s := range cfg.Servers {
-		if newViolators, err := s.evict(cfg, violations); err != nil {
+		if newViolators, err := s.evict(cfg, violators); err != nil {
 			log.Printf("Error: %s\n", err)
 		} else {
-			violators = append(violators, newViolators...)
+			for _, newViolation := range newViolators {
+				match := false
+				for i := range violators {
+					if newViolation.UID == violators[i].Violator.UID {
+						violators[i].Count++
+						violators[i].Violator.Nick = newViolation.Nick
+						match = true
+						break
+					}
+				}
+				if !match {
+					violators = append(violators, violationEntry{
+						Count:    1,
+						Violator: newViolation,
+					})
+				}
+			}
 		}
 	}
 
-	violationsFile, err := os.OpenFile(cfg.Violators, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		return errors.Wrapf(err, "unable to open file %q", cfg.Violators)
-	}
-	violationsWriter := csv.NewWriter(violationsFile)
-	for _, violator := range violators {
-		if err := violationsWriter.Write([]string{"1", violator.UID, violator.Nick}); err != nil {
-			return errors.Wrap(err, "error writing entry")
+	if violationsFile != nil {
+		if _, err := violationsFile.Seek(0, 0); err != nil {
+			return err
 		}
-	}
 
-	violationsWriter.Flush()
-	if err := violationsWriter.Error(); err != nil {
-		return err
+		violationsWriter := csv.NewWriter(violationsFile)
+		for _, violator := range violators {
+			if err := violationsWriter.Write([]string{strconv.Itoa(violator.Count), violator.Violator.UID, violator.Violator.Nick}); err != nil {
+				return errors.Wrap(err, "error writing entry")
+			}
+		}
+
+		violationsWriter.Flush()
+		if err := violationsWriter.Error(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (s server) evict(cfg config, violations []violationEntry) ([]violator, error) {
-	violators := []violator{}
+	newViolators := []violator{}
 	s.fillDefaults(cfg)
 
 	addr := fmt.Sprintf("%s:%d", s.IP, s.QueryPort)
 	log.Printf("Checking %s...\n", addr)
 	c, err := ts3.NewClient(addr)
 	if err != nil {
-		return violators, err
+		return newViolators, err
 	}
 	defer c.Close()
 
 	if err := c.Login(s.Username, s.Password); err != nil {
-		return violators, err
+		return newViolators, err
 	}
 
 	for _, port := range s.Ports {
@@ -98,7 +154,7 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 
 		var groups []*ts3.Group
 		if groups, err = c.Server.GroupList(); err != nil {
-			return violators, err
+			return newViolators, err
 		}
 		var ignoreGroups []*ts3.Group
 		for _, group := range groups {
@@ -111,7 +167,7 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 
 		var clients []*onlineClient
 		if _, err := c.ExecCmd(ts3.NewCmd("clientlist").WithOptions("-uid", "-times", "-groups", "-info").WithResponse(&clients)); err != nil {
-			return violators, err
+			return newViolators, err
 		}
 
 		for _, client := range clients {
@@ -129,7 +185,7 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 					continue
 				}
 
-				violators = append(violators, violator{
+				newViolators = append(newViolators, violator{
 					UID:  client.UniqueIdentifier,
 					Nick: client.Nickname,
 				})
@@ -191,7 +247,7 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 		wg.Wait()
 	}
 
-	return violators, nil
+	return newViolators, nil
 }
 
 func hasGroup(c *onlineClient, groups []*ts3.Group) bool {
