@@ -112,7 +112,7 @@ func init() {
 	viper.SetDefault("defaultqueryport", defaultQueryPort)
 	viper.SetDefault("defaultports", defaultPorts)
 	viper.SetDefault("defaultusername", defaultUser)
-	viper.SetDefault("defaultviolators", defaultViolators)
+	viper.SetDefault("violators", defaultViolators)
 	viper.BindPFlag("action", rootCmd.PersistentFlags().Lookup("action"))
 	viper.SetDefault("action", defaultAction)
 	viper.SetDefault("timelimit", defaultTimelimit)

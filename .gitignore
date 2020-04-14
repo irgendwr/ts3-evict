@@ -22,6 +22,8 @@ dist/
 # config
 .ts3-evict.yaml
 config.yaml
+violators.csv
+violations.csv
 
 # vscode settings
 .vscode/

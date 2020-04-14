@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"encoding/csv"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/irgendwr/go-ts3"
+	"github.com/pkg/errors"
 )
 
 type onlineClient struct {
@@ -26,33 +29,62 @@ type onlineClient struct {
 	Servergroups       string `ms:"client_servergroups"`
 }
 
+type violationEntry struct {
+	count int
+	violator
+}
+
+type violator struct {
+	UID  string
+	Nick string
+}
+
 func evict(cfg config) error {
 	// TODO: read violators
 
+	violations := []violationEntry{}
+	violators := []violator{}
 	for _, s := range cfg.Servers {
-		if err := s.evict(cfg); err != nil {
-			log.Fatalf("Error: %s\n", err)
+		if newViolators, err := s.evict(cfg, violations); err != nil {
+			log.Printf("Error: %s\n", err)
+		} else {
+			violators = append(violators, newViolators...)
 		}
 	}
 
-	// TODO: write violators
+	violationsFile, err := os.OpenFile(cfg.Violators, os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		return errors.Wrapf(err, "unable to open file %q", cfg.Violators)
+	}
+	violationsWriter := csv.NewWriter(violationsFile)
+	for _, violator := range violators {
+		if err := violationsWriter.Write([]string{"1", violator.UID, violator.Nick}); err != nil {
+			return errors.Wrap(err, "error writing entry")
+		}
+	}
+
+	violationsWriter.Flush()
+	if err := violationsWriter.Error(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s server) evict(cfg config) error {
+func (s server) evict(cfg config, violations []violationEntry) ([]violator, error) {
+	violators := []violator{}
 	s.fillDefaults(cfg)
 
 	addr := fmt.Sprintf("%s:%d", s.IP, s.QueryPort)
 	log.Printf("Checking %s...\n", addr)
 	c, err := ts3.NewClient(addr)
 	if err != nil {
-		return err
+		return violators, err
 	}
 	defer c.Close()
 
 	if err := c.Login(s.Username, s.Password); err != nil {
-		return err
+		return violators, err
 	}
 
 	for _, port := range s.Ports {
@@ -66,7 +98,7 @@ func (s server) evict(cfg config) error {
 
 		var groups []*ts3.Group
 		if groups, err = c.Server.GroupList(); err != nil {
-			return err
+			return violators, err
 		}
 		var ignoreGroups []*ts3.Group
 		for _, group := range groups {
@@ -79,7 +111,7 @@ func (s server) evict(cfg config) error {
 
 		var clients []*onlineClient
 		if _, err := c.ExecCmd(ts3.NewCmd("clientlist").WithOptions("-uid", "-times", "-groups", "-info").WithResponse(&clients)); err != nil {
-			return err
+			return violators, err
 		}
 
 		for _, client := range clients {
@@ -96,6 +128,11 @@ func (s server) evict(cfg config) error {
 					//log.Printf("Ignoring due to group: %s\n", client.Nickname)
 					continue
 				}
+
+				violators = append(violators, violator{
+					UID:  client.UniqueIdentifier,
+					Nick: client.Nickname,
+				})
 
 				log.Printf("Messaging %s...\n", client.Nickname)
 				mutex.Lock()
@@ -154,7 +191,7 @@ func (s server) evict(cfg config) error {
 		wg.Wait()
 	}
 
-	return nil
+	return violators, nil
 }
 
 func hasGroup(c *onlineClient, groups []*ts3.Group) bool {
