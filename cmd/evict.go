@@ -171,9 +171,23 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 		}
 
 		for _, client := range clients {
+			var clientViolations *violationEntry
+			overLimit := false
+			for _, violation := range violations {
+				if client.UniqueIdentifier == violation.Violator.UID {
+					clientViolations = &violation
+					if cfg.Action == "kick or ban" {
+						if violation.Count >= cfg.Kicklimit {
+							overLimit = true
+						}
+					}
+					break
+				}
+			}
+
 			// FIXME: time.Since(client.LastConnected)
 			duration := time.Since(time.Unix(client.LastConnected, 0))
-			if duration >= time.Duration(cfg.Timelimit)*time.Minute {
+			if duration >= time.Duration(cfg.Timelimit)*time.Minute || overLimit {
 				// ignore query clients
 				if client.Type == 1 {
 					//log.Printf("Ignoring query client: %s\n", client.Nickname)
@@ -197,8 +211,17 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 				}
 				mutex.Unlock()
 
+				action := cfg.Action
+				if action == "kick or ban" {
+					if clientViolations != nil && clientViolations.Count >= cfg.Kicklimit {
+						action = "ban"
+					} else {
+						action = "kick"
+					}
+				}
+
 				wg.Add(1)
-				go func(client *onlineClient) {
+				go func(client *onlineClient, action string) {
 					defer wg.Done()
 
 					if cfg.Delay > 0 {
@@ -207,7 +230,7 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 
 					log.Printf("Evicting %s | %s | %s ...\n", client.Nickname, client.UniqueIdentifier, client.ConnectionClientIP)
 
-					switch cfg.Action {
+					switch action {
 					case "none":
 						break
 					case "ban":
@@ -241,7 +264,7 @@ func (s server) evict(cfg config, violations []violationEntry) ([]violator, erro
 						}
 						mutex.Unlock()
 					}
-				}(client)
+				}(client, action)
 			}
 		}
 		wg.Wait()
