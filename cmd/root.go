@@ -26,6 +26,7 @@ const defaultViolators = "violators.csv"
 const defaultAction = "kick"
 const defaultTimelimit = 5
 const defaultKicklimit = 3
+const defaultBanDuration = 0
 const defaultMessage = "Timelimit exceeded."
 const defaultDelay = 5
 
@@ -114,6 +115,7 @@ func init() {
 	viper.SetDefault("action", defaultAction)
 	viper.SetDefault("timelimit", defaultTimelimit)
 	viper.SetDefault("kicklimit", defaultKicklimit)
+	viper.SetDefault("banduration", defaultBanDuration)
 	viper.BindPFlag("message", rootCmd.PersistentFlags().Lookup("message"))
 	viper.SetDefault("message", defaultMessage)
 	viper.SetDefault("delay", defaultDelay)

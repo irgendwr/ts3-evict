@@ -41,6 +41,8 @@ Action: kick
 Message: Timelimit exceeded.
 KickMessage: Timelimit exceeded.
 BanMessage: Timelimit exceeded.
+# BanDuration (in seconds; 0 = permanent)
+BanDuration: 0
 # Delay (in seconds) before doing action
 Delay: 5
 IgnoreGroupNames:

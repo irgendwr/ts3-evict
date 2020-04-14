@@ -12,6 +12,7 @@ type config struct {
 	Message          string
 	KickMessage      string
 	BanMessage       string
+	BanDuration      int
 	Delay            int
 	IgnoreGroupNames []string
 	Servers          []server

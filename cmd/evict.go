@@ -125,6 +125,9 @@ func (s server) evict(cfg config) error {
 						if cfg.BanMessage != "" {
 							args = append(args, ts3.NewArg("banreason", cfg.BanMessage))
 						}
+						if cfg.BanDuration > 0 {
+							args = append(args, ts3.NewArg("time", cfg.BanDuration))
+						}
 						if _, err := c.ExecCmd(ts3.NewCmd("banclient").WithArgs(args...)); err != nil {
 							log.Printf("Error: Unable to ban %s: %s\n", client.Nickname, err)
 						}
