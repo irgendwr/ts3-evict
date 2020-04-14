@@ -61,6 +61,8 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
+		log.SetFlags(log.Ltime)
+
 		var cfg config
 		if err := viper.Unmarshal(&cfg); err != nil {
 			log.Fatalf("Error: Unable to read config: %s\n", err)
