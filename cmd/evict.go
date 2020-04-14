@@ -27,11 +27,15 @@ type onlineClient struct {
 }
 
 func evict(cfg config) error {
+	// TODO: read violators
+
 	for _, s := range cfg.Servers {
 		if err := s.evict(cfg); err != nil {
 			log.Fatalf("Error: %s\n", err)
 		}
 	}
+
+	// TODO: write violators
 
 	return nil
 }
@@ -104,7 +108,9 @@ func (s server) evict(cfg config) error {
 				go func(client *onlineClient) {
 					defer wg.Done()
 
-					time.Sleep(time.Duration(cfg.Delay) * time.Second)
+					if cfg.Delay > 0 {
+						time.Sleep(time.Duration(cfg.Delay) * time.Second)
+					}
 
 					log.Printf("Evicting %s | %s | %s ...\n", client.Nickname, client.UniqueIdentifier, client.ConnectionClientIP)
 
@@ -113,7 +119,13 @@ func (s server) evict(cfg config) error {
 						break
 					case "ban":
 						mutex.Lock()
-						if _, err := c.ExecCmd(ts3.NewCmd("banclient").WithArgs(ts3.NewArg("clid", client.CLID))); err != nil {
+						args := []ts3.CmdArg{
+							ts3.NewArg("clid", client.CLID),
+						}
+						if cfg.BanMessage != "" {
+							args = append(args, ts3.NewArg("banreason", cfg.BanMessage))
+						}
+						if _, err := c.ExecCmd(ts3.NewCmd("banclient").WithArgs(args...)); err != nil {
 							log.Printf("Error: Unable to ban %s: %s\n", client.Nickname, err)
 						}
 						mutex.Unlock()
@@ -121,7 +133,14 @@ func (s server) evict(cfg config) error {
 						fallthrough
 					case "kick":
 						mutex.Lock()
-						if _, err := c.ExecCmd(ts3.NewCmd("clientkick").WithArgs(ts3.NewArg("clid", client.CLID), ts3.NewArg("reasonid", 5 /* server kick*/))); err != nil {
+						args := []ts3.CmdArg{
+							ts3.NewArg("clid", client.CLID),
+							ts3.NewArg("reasonid", 5 /* server kick*/),
+						}
+						if cfg.KickMessage != "" {
+							args = append(args, ts3.NewArg("reasonmsg", cfg.KickMessage))
+						}
+						if _, err := c.ExecCmd(ts3.NewCmd("clientkick").WithArgs(args...)); err != nil {
 							log.Printf("Error: Unable to kick %s: %s\n", client.Nickname, err)
 						}
 						mutex.Unlock()

@@ -33,10 +33,14 @@ DefaultUsername: serveradmin
 DefaultPassword: your-password-here
 DefaultQueryPort: 10011
 DefaultPorts: [9987, 9988]
+Violators: violators.csv
 # Timelimit (in minutes) before eviction 
 Timelimit: 5
+Kicklimit: 3
 Action: kick
 Message: Timelimit exceeded.
+KickMessage: Timelimit exceeded.
+BanMessage: Timelimit exceeded.
 # Delay (in seconds) before doing action
 Delay: 5
 IgnoreGroupNames:

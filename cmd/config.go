@@ -5,9 +5,13 @@ type config struct {
 	DefaultQueryPort int
 	DefaultUsername  string
 	DefaultPassword  string
+	Violators        string
 	Timelimit        int
+	Kicklimit        int
 	Action           string
 	Message          string
+	KickMessage      string
+	BanMessage       string
 	Delay            int
 	IgnoreGroupNames []string
 	Servers          []server

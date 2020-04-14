@@ -22,8 +22,10 @@ var defaultPorts = []int{9987}
 const defaultQueryPort = ts3.DefaultPort
 const defaultHost = "127.0.0.1"
 const defaultUser = "serveradmin"
+const defaultViolators = "violators.csv"
 const defaultAction = "kick"
 const defaultTimelimit = 5
+const defaultKicklimit = 3
 const defaultMessage = "Timelimit exceeded."
 const defaultDelay = 5
 
@@ -67,8 +69,16 @@ var rootCmd = &cobra.Command{
 		// 	log.Fatalln("Please set your server-query username and password in the config file (" + defaultCfgFile + "." + defaultCfgFileType + ").")
 		// }
 
-		if !(cfg.Action == "kick" || cfg.Action == "ban" || cfg.Action == "none") {
-			log.Fatalln("Error: Please set a valid action: either kick, ban or none.")
+		if !(cfg.Action == "kick" || cfg.Action == "ban" || cfg.Action == "kick or ban" || cfg.Action == "none") {
+			log.Fatalln("Error: Please set a valid action: either kick, ban, 'kick or ban' or none.")
+		}
+
+		if len(cfg.KickMessage) > 80 {
+			log.Fatalln("Error: Kick message too long. Use 80 chars or less.")
+		}
+
+		if len(cfg.BanMessage) > 80 {
+			log.Fatalln("Error: Ban message too long. Use 80 chars or less.")
 		}
 
 		if err := evict(cfg); err != nil {
@@ -91,7 +101,7 @@ func init() {
 
 	// Define flags
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file (default is "+defaultCfgFile+"."+defaultCfgFileType+" in program dir, CWD or $HOME)")
-	rootCmd.PersistentFlags().StringP("action", "a", defaultAction, "action (kick/ban)")
+	rootCmd.PersistentFlags().StringP("action", "a", defaultAction, "action (none/kick/ban/kick or ban)")
 	rootCmd.PersistentFlags().StringP("message", "m", defaultMessage, "message")
 	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "show version and exit")
 
@@ -99,9 +109,11 @@ func init() {
 	viper.SetDefault("defaultqueryport", defaultQueryPort)
 	viper.SetDefault("defaultports", defaultPorts)
 	viper.SetDefault("defaultusername", defaultUser)
+	viper.SetDefault("defaultviolators", defaultViolators)
 	viper.BindPFlag("action", rootCmd.PersistentFlags().Lookup("action"))
 	viper.SetDefault("action", defaultAction)
 	viper.SetDefault("timelimit", defaultTimelimit)
+	viper.SetDefault("kicklimit", defaultKicklimit)
 	viper.BindPFlag("message", rootCmd.PersistentFlags().Lookup("message"))
 	viper.SetDefault("message", defaultMessage)
 	viper.SetDefault("delay", defaultDelay)
