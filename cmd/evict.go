@@ -21,8 +21,8 @@ type onlineClient struct {
 	Type               int    `ms:"client_type"`
 	Away               bool   `ms:"client_away"`
 	AwayMessage        string `ms:"client_away_message"`
-	LastConnected      int64  `ms:"client_lastconnected"`
-	IdleTime           int64  `ms:"client_idle_time"`
+	LastConnected      int64  `ms:"client_lastconnected"` // FIXME: time.Time
+	IdleTime           int64  `ms:"client_idle_time"`     // FIXME: time.Time
 	Servergroups       string `ms:"client_servergroups"`
 }
 
@@ -79,6 +79,7 @@ func (s server) evict(cfg config) error {
 		}
 
 		for _, client := range clients {
+			// FIXME: time.Since(client.LastConnected)
 			duration := time.Since(time.Unix(client.LastConnected, 0))
 			if duration >= time.Duration(cfg.Timelimit)*time.Minute {
 				// ignore query clients
@@ -117,6 +118,7 @@ func (s server) evict(cfg config) error {
 						}
 						mutex.Unlock()
 					default:
+						fallthrough
 					case "kick":
 						mutex.Lock()
 						if _, err := c.ExecCmd(ts3.NewCmd("clientkick").WithArgs(ts3.NewArg("clid", client.CLID), ts3.NewArg("reasonid", 5 /* server kick*/))); err != nil {

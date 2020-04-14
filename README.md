@@ -24,49 +24,53 @@ See [config](#config) section for examples.
 
 ### Config
 
+**Note: Do not use Tabs! Indent config with spaces instead.**
+
 Example with all options:
 
 ```yaml
-defaultusername: serveradmin
-defaultpassword: your-password-here
-defaultqueryport: 10011
-defaultports: [9987, 9988]
-# timelimit before evicting (in minutes)
-timelimit: 5
-action: kick
-message: Timelimit exceeded.
-# delay before doing action (in seconds)
-delay: 15
-ignoreGroupNames:
+DefaultUsername: serveradmin
+DefaultPassword: your-password-here
+DefaultQueryPort: 10011
+DefaultPorts: [9987, 9988]
+# Timelimit (in minutes) before eviction 
+Timelimit: 5
+Action: kick
+Message: Timelimit exceeded.
+# Delay (in seconds) before doing action
+Delay: 5
+IgnoreGroupNames:
   - Server Admin
+  - Server Query Admin
   - musicbot
 servers:
   - IP: ts3.example.com
   - IP: another.ts3.example.com
-    ports: [9987]
+    Ports: [9987]
   - IP: 127.0.0.1
-    queryport: 10011
-    ports: [9987, 9988, 9989]
-    username: serveradmin
-    password: your-secret-password
+    QueryPort: 10011
+    Ports: [9987, 9988, 9989]
+    Username: serveradmin
+    Password: your-secret-password
 ```
 
 Example for a single TS3 server:
 
 ```yaml
-timelimit: 5 # timelimit before evicting (in minutes)
-action: kick
-message: Timelimit exceeded.
-delay: 15 # delay before doing action (in seconds)
-ignoreGroupNames:
+Timelimit: 5 # Timelimit (in minutes) before eviction 
+Action: kick
+Message: Timelimit exceeded.
+Delay: 5 # Delay (in seconds) before doing action
+IgnoreGroupNames:
   - Server Admin
+  - Server Query Admin
   - musicbot
-servers:
+Servers:
   - IP: 127.0.0.1
-    queryport: 10011
-    ports: [9987]
-    username: serveradmin
-    password: your-secret-password
+    QueryPort: 10011
+    Ports: [9987]
+    Username: serveradmin
+    Password: your-secret-password
 ```
 
 ## Usage

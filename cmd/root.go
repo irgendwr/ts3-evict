@@ -25,7 +25,7 @@ const defaultUser = "serveradmin"
 const defaultAction = "kick"
 const defaultTimelimit = 5
 const defaultMessage = "Timelimit exceeded."
-const defaultDelay = 15
+const defaultDelay = 5
 
 // defaultCfgFile is the default config file name without extention
 const defaultCfgFile = ".ts3-evict"
@@ -59,8 +59,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		var cfg config
-		err := viper.Unmarshal(&cfg)
-		if err != nil {
+		if err := viper.Unmarshal(&cfg); err != nil {
 			log.Fatalf("Error: Unable to read config: %s\n", err)
 		}
 
